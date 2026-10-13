@@ -1,0 +1,1625 @@
+{
+  "name": "Checkpoint4_Juan_Pablo_Troncoso",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "download": true
+        }
+      },
+      "id": "70e8e416-3863-4dcb-862a-222f88be4317",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        32,
+        112
+      ],
+      "webhookId": "346a4b37-b19c-45e7-a1fa-473f76394f8d",
+      "credentials": {
+        "telegramApi": {
+          "id": "b1UN1rxgtQn7sPVj",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "asgn_session_id",
+              "name": "session_id",
+              "value": "={{ $json.message.chat.id.toString() }}",
+              "type": "string"
+            },
+            {
+              "id": "asgn_user_text",
+              "name": "user_text",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "asgn_first_name",
+              "name": "user_first_name",
+              "value": "={{ $json.message.from.first_name || \"\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d59f037b-fd32-4cbe-9f59-8cb6378fc620",
+      "name": "Extract Session",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        272,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appTWQ3U1IATG9gA7",
+          "mode": "list",
+          "cachedResultName": "Agente M3 — Memoria",
+          "cachedResultUrl": "https://airtable.com/appTWQ3U1IATG9gA7"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl0x0ZKqH3pRbLu4",
+          "mode": "list",
+          "cachedResultName": "Sesiones",
+          "cachedResultUrl": "https://airtable.com/appTWQ3U1IATG9gA7/tbl0x0ZKqH3pRbLu4"
+        },
+        "filterByFormula": "={{ \"{Session_ID}='\" + $json.session_id + \"'\" }}",
+        "returnAll": false,
+        "limit": 1,
+        "options": {}
+      },
+      "id": "67907827-a5eb-411b-98ba-ffaadc3e0a72",
+      "name": "Search Airtable by Session",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        416,
+        304
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "6GAcv2PBXrvfrz9d",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond_has_id",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "530443ce-6d80-4acb-be2c-24f5c05ed308",
+      "name": "Has Previous Record?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ret_session_id",
+              "name": "session_id",
+              "value": "={{ $('Extract Session').item.json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "ret_record_id",
+              "name": "record_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "ret_user_name",
+              "name": "user_name",
+              "value": "={{ $json.fields.Nombre_Usuario || $('Extract Session').item.json.user_first_name || 'usuario' }}",
+              "type": "string"
+            },
+            {
+              "id": "ret_last_summary",
+              "name": "last_summary",
+              "value": "={{ $json.fields.Resumen_Consolidado || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "ret_estado",
+              "name": "estado",
+              "value": "={{ $json.fields.Estado_del_Caso || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "ret_datos_clave",
+              "name": "datos_clave",
+              "value": "={{ $json.fields.Datos_Clave || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "ret_msg_count",
+              "name": "message_count",
+              "value": "={{ $json.fields.Contador_Mensajes || 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "ret_is_new",
+              "name": "is_new_user",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "ret_ctx",
+              "name": "system_context",
+              "value": "={{ \"[INICIO DE CONTEXTO COMPARTIDO]\\nNombre de usuario: \" + ($json.fields.Nombre_Usuario || $(\"Extract Session\").item.json.user_first_name || \"usuario\") + \"\\nResumen de la última sesión: \" + ($json.fields.Resumen_Consolidado || \"Sin historial previo\") + \"\\nEstado del caso: \" + ($json.fields.Estado_del_Caso || \"Sin estado registrado\") + \"\\nDatos clave: \" + ($json.fields.Datos_Clave || \"Sin datos\") + \"\\n[FIN DEL CONTEXTO COMPARTIDO]\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bf9cd1c9-f979-4ecf-9668-8cbc12cfef2b",
+      "name": "Prepare Returning Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        704,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appTWQ3U1IATG9gA7",
+          "mode": "list",
+          "cachedResultName": "Agente M3 — Memoria",
+          "cachedResultUrl": "https://airtable.com/appTWQ3U1IATG9gA7"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl0x0ZKqH3pRbLu4",
+          "mode": "list",
+          "cachedResultName": "Sesiones",
+          "cachedResultUrl": "https://airtable.com/appTWQ3U1IATG9gA7/tbl0x0ZKqH3pRbLu4"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Session_ID": "={{ $('Extract Session').item.json.session_id }}",
+            "Nombre_Usuario": "={{ $('Extract Session').item.json.user_first_name }}",
+            "Estado_del_Caso": "Nuevo",
+            "Resumen_Consolidado": "",
+            "Datos_Clave": "",
+            "Contador_Mensajes": 0,
+            "Fecha_Actualizacion": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "be6280b3-3d17-42c5-acd7-b105235aab3c",
+      "name": "Create Initial Record",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        704,
+        400
+      ],
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "6GAcv2PBXrvfrz9d",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "new_session_id",
+              "name": "session_id",
+              "value": "={{ $('Extract Session').item.json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "new_record_id",
+              "name": "record_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "new_user_name",
+              "name": "user_name",
+              "value": "={{ $('Extract Session').item.json.user_first_name || 'usuario' }}",
+              "type": "string"
+            },
+            {
+              "id": "new_last_summary",
+              "name": "last_summary",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "new_estado",
+              "name": "estado",
+              "value": "Nuevo",
+              "type": "string"
+            },
+            {
+              "id": "new_datos_clave",
+              "name": "datos_clave",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "new_msg_count",
+              "name": "message_count",
+              "value": 0,
+              "type": "number"
+            },
+            {
+              "id": "new_is_new",
+              "name": "is_new_user",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "new_ctx",
+              "name": "system_context",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "90ff0a59-c6be-4ff4-ab94-2956d922e3d3",
+      "name": "Prepare New User Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        400
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "ece943dd-81c3-4937-a554-1396650b5567",
+      "name": "Unify Context",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        880,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').item.json.message.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=CONFIGURACIÓN DE IDENTIDAD Y MEMORIA DE LARGO PLAZO\n\nEl usuario se llama {{ $json.user_name }}.\n\n{{ $json.system_context }}\n\nEres un asistente inteligente multi-propósito. Responde de forma clara, concisa y útil. Tienes acceso a herramientas de búsqueda en base de conocimiento vectorial. PROHIBIDO incluir payloads HTML, logs técnicos, transcripciones conversacionales completas o cualquier contenido que no aporte valor directo al usuario.",
+          "maxIterations": 10
+        }
+      },
+      "id": "133eaabc-d075-40a1-bbb3-4486bd2f1d92",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        800,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.8-2.4t-a95b",
+        "options": {
+          "maxTokens": 4096
+        }
+      },
+      "id": "ed5ad90d-b127-4459-b77a-8befc549972f",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        736,
+        416
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "7DhI1hr5OJbQbZ0D",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Unify Context').item.json.session_id }}"
+      },
+      "id": "41157d9a-2b2e-42bf-a3cb-efb124de6aec",
+      "name": "MongoDB Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryMongoDbChat",
+      "typeVersion": 1.1,
+      "position": [
+        864,
+        416
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "0rsAOyMQ2d9tf3yt",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual"
+      },
+      "id": "4a3e9703-a677-43e5-abe7-dd492b98129a",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        992,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "id": "3389515b-b4ff-41d1-a779-82f336d8b189",
+      "name": "Send a text message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1152,
+        -48
+      ],
+      "webhookId": "ef81bbd5-1d1e-4ca5-a594-1547d219701f",
+      "credentials": {
+        "telegramApi": {
+          "id": "b1UN1rxgtQn7sPVj",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond_msg_count",
+              "leftValue": "={{ $('Unify Context').item.json.message_count }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ea6e9016-2b81-45a0-af13-2aac1befb2a9",
+      "name": "Summarize if > 5 messages?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Eres un asistente de análisis conversacional. Extrae un resumen estructurado y accionable de esta sesión. No incluyas transcripciones completas, solo el resumen analítico.\n\nUsuario: {{ $('Unify Context').item.json.user_name }}\nÚltimo mensaje del usuario: {{ $('Telegram Trigger').item.json.message.text }}\nRespuesta del agente: {{ $('AI Agent').item.json.output }}\nContexto previo almacenado: {{ $('Unify Context').item.json.last_summary }}\n\nResponde ÚNICAMENTE con un objeto JSON válido, sin texto adicional ni bloques de código:\n{\"asunto_principal\":\"\",\"puntos_clave\":[],\"accion_requerida\":\"\",\"estado\":\"Activo\",\"datos_clave\":\"\"}",
+        "batching": {}
+      },
+      "id": "5add9e4f-e2cf-49d3-b150-72a0a30f17ac",
+      "name": "Summarize Conversation",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1392,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5-mini"
+        },
+        "responsesApiEnabled": false,
+        "options": {}
+      },
+      "id": "1431bf84-9b3e-4710-a935-1020916b986b",
+      "name": "OpenAI GPT-4o-mini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1520,
+        384
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "vqPPTHjJrZEBnSbh",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appTWQ3U1IATG9gA7",
+          "mode": "list",
+          "cachedResultName": "Agente M3 — Memoria",
+          "cachedResultUrl": "https://airtable.com/appTWQ3U1IATG9gA7"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl0x0ZKqH3pRbLu4",
+          "mode": "list",
+          "cachedResultName": "Sesiones",
+          "cachedResultUrl": "https://airtable.com/appTWQ3U1IATG9gA7/tbl0x0ZKqH3pRbLu4"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Session_ID"
+          ],
+          "value": {
+            "Session_ID": "={{ $('Unify Context').item.json.session_id }}",
+            "Resumen_Consolidado": "={{ $json.text }}",
+            "Estado_del_Caso": "Activo",
+            "Datos_Clave": "={{ $('Unify Context').item.json.datos_clave }}",
+            "Contador_Mensajes": 0,
+            "Fecha_Actualizacion": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "d760e820-9772-423b-8fc7-e20c51fd6d85",
+      "name": "Update Record with Summary",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1680,
+        240
+      ],
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "6GAcv2PBXrvfrz9d",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appTWQ3U1IATG9gA7",
+          "mode": "list",
+          "cachedResultName": "Agente M3 — Memoria",
+          "cachedResultUrl": "https://airtable.com/appTWQ3U1IATG9gA7"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl0x0ZKqH3pRbLu4",
+          "mode": "list",
+          "cachedResultName": "Sesiones",
+          "cachedResultUrl": "https://airtable.com/appTWQ3U1IATG9gA7/tbl0x0ZKqH3pRbLu4"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Session_ID"
+          ],
+          "value": {
+            "Session_ID": "={{ $('Unify Context').item.json.session_id }}",
+            "Estado_del_Caso": "Activo",
+            "Contador_Mensajes": "={{ ($('Unify Context').item.json.message_count || 0) + 1 }}",
+            "Fecha_Actualizacion": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "dc3ba436-035c-4d3e-89be-28f3c6548618",
+      "name": "Update Record Basic",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1360,
+        400
+      ],
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "6GAcv2PBXrvfrz9d",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "includeSpamTrash": false,
+          "includeDrafts": false,
+          "q": "in:inbox -category:promotions -category:social",
+          "readStatus": "unread"
+        },
+        "options": {
+          "downloadAttachments": false
+        }
+      },
+      "id": "0d76bf2e-2234-49c3-aa00-62ce3fe2bcbd",
+      "name": "Email entrante (Soporte)",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        32,
+        304
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "2tLIqEjN9KItJ2Rs",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "or",
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ar_subj_autoreply",
+              "leftValue": "={{ $json.subject || \"\" }}",
+              "rightValue": "Auto-reply",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "ar_subj_autoreply2",
+              "leftValue": "={{ $json.subject || \"\" }}",
+              "rightValue": "Automatic reply",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "ar_subj_ooo",
+              "leftValue": "={{ $json.subject || \"\" }}",
+              "rightValue": "Out of office",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "ar_subj_undeliv",
+              "leftValue": "={{ $json.subject || \"\" }}",
+              "rightValue": "Undeliverable",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "ar_subj_es1",
+              "leftValue": "={{ $json.subject || \"\" }}",
+              "rightValue": "Respuesta automática",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "ar_subj_es2",
+              "leftValue": "={{ $json.subject || \"\" }}",
+              "rightValue": "Fuera de la oficina",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "ar_from_noreply",
+              "leftValue": "={{ $json.from?.value?.[0]?.address || \"\" }}",
+              "rightValue": "no-reply@",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "ar_from_noreply2",
+              "leftValue": "={{ $json.from?.value?.[0]?.address || \"\" }}",
+              "rightValue": "noreply@",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "ar_from_daemon",
+              "leftValue": "={{ $json.from?.value?.[0]?.address || \"\" }}",
+              "rightValue": "mailer-daemon@",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b7c6b56c-f2a1-4b32-84fa-7b0a2a17622d",
+      "name": "① ¿Es auto-reply?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        272,
+        576
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "1af3cdf6-8496-4075-92ca-376a1150c1bb",
+      "name": "Stop: auto-reply ignorado",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        560,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Correo recibido en la casilla de soporte de la tienda e-commerce.\nRemitente: {{ $json.from?.text || \"\" }}\nAsunto: {{ $json.subject || \"\" }}\nCuerpo: {{ ($json.text || \"\").slice(0, 3000) }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Sos el agente de soporte al cliente de una tienda e-commerce.\n1) Clasificá el correo en UNA categoría: envio, devolucion, pago, producto, reclamo u otro.\n2) Escribí un resumen de una sola oración para el equipo de operaciones.\n3) Redactá una respuesta cordial, breve y en español rioplatense para el cliente. No inventes números de seguimiento, montos ni plazos: si falta un dato, indicá que el equipo lo verificará.\nLa respuesta se guarda como BORRADOR y será revisada por una persona antes de enviarse."
+        }
+      },
+      "id": "f52d63f6-f81c-4a3f-9384-c90a2370c577",
+      "name": "AI Agent Soporte: clasifica y redacta",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        496,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5-mini"
+        },
+        "responsesApiEnabled": false,
+        "options": {}
+      },
+      "id": "7469a112-1c2e-4a22-9a18-4647c9e6f4cd",
+      "name": "OpenAI Modelo Soporte",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        960
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "vqPPTHjJrZEBnSbh",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"categoria\": \"envio\",\n  \"resumen\": \"La clienta pide el número de seguimiento de su pedido #1045\",\n  \"respuesta\": \"Hola Laura, gracias por escribirnos...\"\n}"
+      },
+      "id": "198e094a-612e-4ce6-a4bd-d12d12e5d7f0",
+      "name": "Parser Soporte",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        640,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cl_from",
+              "name": "From",
+              "value": "={{ ($('Email entrante (Soporte)').item.json.from?.value?.[0]?.address || '').toLowerCase().trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "cl_name",
+              "name": "FromName",
+              "value": "={{ ($('Email entrante (Soporte)').item.json.from?.value?.[0]?.name || '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "cl_subject",
+              "name": "Subject",
+              "value": "={{ ($('Email entrante (Soporte)').item.json.subject || '(sin asunto)').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "cl_body",
+              "name": "BodyText",
+              "value": "={{ ($('Email entrante (Soporte)').item.json.text || '').replace(/\\s+/g, ' ').trim().slice(0, 1500) }}",
+              "type": "string"
+            },
+            {
+              "id": "cl_thread",
+              "name": "threadId",
+              "value": "={{ $('Email entrante (Soporte)').item.json.threadId }}",
+              "type": "string"
+            },
+            {
+              "id": "cl_msg",
+              "name": "messageId",
+              "value": "={{ $('Email entrante (Soporte)').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "cl_cat",
+              "name": "categoria",
+              "value": "={{ $json.output.categoria || \"otro\" }}",
+              "type": "string"
+            },
+            {
+              "id": "cl_res",
+              "name": "resumen",
+              "value": "={{ $json.output.resumen || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "cl_resp",
+              "name": "respuesta_ia",
+              "value": "={{ $json.output.respuesta || \"\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "85850f88-2e70-4d4c-b8dd-23d1219d725d",
+      "name": "④ Limpiar y validar payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        848,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ve_notempty",
+              "leftValue": "={{ $json.From }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "ve_regex",
+              "leftValue": "={{ $json.From }}",
+              "rightValue": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            },
+            {
+              "id": "ve_reply",
+              "leftValue": "={{ $json.respuesta_ia }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6adae871-7412-44d7-b69c-ca81de7f9327",
+      "name": "¿Email válido y no vacío?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1072,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "search",
+        "limit": 1,
+        "filterGroupsUi": {
+          "filterGroupsValues": [
+            {
+              "filtersUi": {
+                "filterValues": [
+                  {
+                    "propertyName": "email|string",
+                    "value": "={{ $json.From }}"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "properties": [
+            "email",
+            "firstname",
+            "lastname"
+          ]
+        }
+      },
+      "id": "1d1f8eb2-b62c-4f5c-a374-7e800e2a7671",
+      "name": "② Look up: ¿contacto existe en CRM?",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        752,
+        528
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "Jb8TDslCrI26CwlM",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ce_id",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a06a7894-61c5-423d-8738-63af32c77b47",
+      "name": "¿Contacto encontrado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        976,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "email": "={{ $('④ Limpiar y validar payload').item.json.From }}",
+        "additionalFields": {
+          "message": "={{ '[' + $('④ Limpiar y validar payload').item.json.categoria + '] ' + $('④ Limpiar y validar payload').item.json.resumen }}"
+        },
+        "options": {
+          "resolveData": false
+        }
+      },
+      "id": "32821c59-0db8-46d8-9dcd-da9e5092634e",
+      "name": "Update contacto (CRM)",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        432
+      ],
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "Jb8TDslCrI26CwlM",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "email": "={{ $('④ Limpiar y validar payload').item.json.From }}",
+        "additionalFields": {
+          "firstName": "={{ $('④ Limpiar y validar payload').item.json.FromName.split(' ')[0] || '' }}",
+          "lastName": "={{ $('④ Limpiar y validar payload').item.json.FromName.split(' ').slice(1).join(' ') || '' }}",
+          "message": "={{ '[' + $('④ Limpiar y validar payload').item.json.categoria + '] ' + $('④ Limpiar y validar payload').item.json.resumen }}"
+        },
+        "options": {
+          "resolveData": false
+        }
+      },
+      "id": "dff8be9b-d6e3-4773-8db0-eba611d75079",
+      "name": "Create contacto (CRM)",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        624
+      ],
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "Jb8TDslCrI26CwlM",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ 'Re: ' + $('④ Limpiar y validar payload').item.json.Subject }}",
+        "message": "={{ $('④ Limpiar y validar payload').item.json.respuesta_ia }}",
+        "options": {
+          "threadId": "={{ $('④ Limpiar y validar payload').item.json.threadId }}",
+          "sendTo": "={{ $('④ Limpiar y validar payload').item.json.From }}"
+        }
+      },
+      "id": "be186f35-5587-42ec-a687-55a05a25d18b",
+      "name": "③ Create Draft (HITL)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1424,
+        528
+      ],
+      "webhookId": "6aa12c4a-3a1a-47ae-82d2-eada59421b6a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "2tLIqEjN9KItJ2Rs",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('④ Limpiar y validar payload').item.json.messageId }}"
+      },
+      "id": "c0c84e0a-ad7d-4375-80a4-e386536e8a73",
+      "name": "Marcar email como procesado",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1648,
+        528
+      ],
+      "webhookId": "c6fe0f3f-648a-4b19-97dd-69e431b85857",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "2tLIqEjN9KItJ2Rs",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "sp_from",
+              "name": "remitente",
+              "value": "={{ $('④ Limpiar y validar payload').item.json.From }}",
+              "type": "string"
+            },
+            {
+              "id": "sp_subject",
+              "name": "asunto",
+              "value": "={{ $('④ Limpiar y validar payload').item.json.Subject.slice(0, 120) }}",
+              "type": "string"
+            },
+            {
+              "id": "sp_cat",
+              "name": "categoria",
+              "value": "={{ $('④ Limpiar y validar payload').item.json.categoria }}",
+              "type": "string"
+            },
+            {
+              "id": "sp_res",
+              "name": "resumen",
+              "value": "={{ $('④ Limpiar y validar payload').item.json.resumen.slice(0, 300) }}",
+              "type": "string"
+            },
+            {
+              "id": "sp_draft",
+              "name": "borrador_id",
+              "value": "={{ $('③ Create Draft (HITL)').item.json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bc698ea6-d51f-4df4-a22b-61f89c5a22b1",
+      "name": "Payload mínimo para Slack",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1872,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0C9J8GBQGG",
+          "mode": "list",
+          "cachedResultName": "general-jp23"
+        },
+        "text": "=:envelope: *Nuevo caso de soporte* ({{ $json.categoria }})\n*De:* {{ $json.remitente }}\n*Asunto:* {{ $json.asunto }}\n*Resumen:* {{ $json.resumen }}\n:memo: Borrador listo en Gmail para aprobación humana (id {{ $json.borrador_id }}).",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "id": "8bc24760-2225-426c-ad10-db155b3957ad",
+      "name": "Avisar a Operaciones (Slack)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        2096,
+        528
+      ],
+      "webhookId": "8fce8201-6ca7-4e56-ba14-4b2f14c74728",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "iwlOFXRzVrxypMbR",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Session": {
+      "main": [
+        [
+          {
+            "node": "Search Airtable by Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Airtable by Session": {
+      "main": [
+        [
+          {
+            "node": "Has Previous Record?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Previous Record?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Returning Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Initial Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Returning Context": {
+      "main": [
+        [
+          {
+            "node": "Unify Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Initial Record": {
+      "main": [
+        [
+          {
+            "node": "Prepare New User Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare New User Context": {
+      "main": [
+        [
+          {
+            "node": "Unify Context",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Unify Context": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Summarize if > 5 messages?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize if > 5 messages?": {
+      "main": [
+        [
+          {
+            "node": "Summarize Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Record Basic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize Conversation": {
+      "main": [
+        [
+          {
+            "node": "Update Record with Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-4o-mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarize Conversation",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email entrante (Soporte)": {
+      "main": [
+        [
+          {
+            "node": "① ¿Es auto-reply?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "① ¿Es auto-reply?": {
+      "main": [
+        [
+          {
+            "node": "Stop: auto-reply ignorado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent Soporte: clasifica y redacta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent Soporte: clasifica y redacta": {
+      "main": [
+        [
+          {
+            "node": "④ Limpiar y validar payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Modelo Soporte": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent Soporte: clasifica y redacta",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser Soporte": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent Soporte: clasifica y redacta",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "④ Limpiar y validar payload": {
+      "main": [
+        [
+          {
+            "node": "¿Email válido y no vacío?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Email válido y no vacío?": {
+      "main": [
+        [
+          {
+            "node": "② Look up: ¿contacto existe en CRM?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "② Look up: ¿contacto existe en CRM?": {
+      "main": [
+        [
+          {
+            "node": "¿Contacto encontrado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Contacto encontrado?": {
+      "main": [
+        [
+          {
+            "node": "Update contacto (CRM)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create contacto (CRM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update contacto (CRM)": {
+      "main": [
+        [
+          {
+            "node": "③ Create Draft (HITL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create contacto (CRM)": {
+      "main": [
+        [
+          {
+            "node": "③ Create Draft (HITL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "③ Create Draft (HITL)": {
+      "main": [
+        [
+          {
+            "node": "Marcar email como procesado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar email como procesado": {
+      "main": [
+        [
+          {
+            "node": "Payload mínimo para Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payload mínimo para Slack": {
+      "main": [
+        [
+          {
+            "node": "Avisar a Operaciones (Slack)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a7ffaf21-6142-459f-8ad3-200decda7c02",
+  "meta": {
+    "instanceId": "5d3025400f8adf06d4eff54dc5994a50e0485c5e26c73cf921b048a040aaf59f"
+  },
+  "nodeGroups": [
+    {
+      "id": "d0520d49-261b-4dbc-947f-d0403fe2fd26",
+      "name": "Recuperar Contexto",
+      "nodeIds": [
+        "d59f037b-fd32-4cbe-9f59-8cb6378fc620",
+        "67907827-a5eb-411b-98ba-ffaadc3e0a72",
+        "530443ce-6d80-4acb-be2c-24f5c05ed308",
+        "bf9cd1c9-f979-4ecf-9668-8cbc12cfef2b",
+        "be6280b3-3d17-42c5-acd7-b105235aab3c",
+        "90ff0a59-c6be-4ff4-ab94-2956d922e3d3",
+        "ece943dd-81c3-4937-a554-1396650b5567"
+      ],
+      "description": "Busca el historial del usuario en Airtable por Session_ID. Usuarios recurrentes reciben inyección de contexto; usuarios nuevos generan un registr"
+    },
+    {
+      "id": "c4ea0c97-9b51-4a6e-9d2b-61fce88042d9",
+      "name": "Agente con Memoria Híbrida",
+      "nodeIds": [
+        "133eaabc-d075-40a1-bbb3-4486bd2f1d92",
+        "ed5ad90d-b127-4459-b77a-8befc549972f",
+        "41157d9a-2b2e-42bf-a3cb-efb124de6aec",
+        "4a3e9703-a677-43e5-abe7-dd492b98129a"
+      ],
+      "description": "Procesa el mensaje con memoria de corto plazo (MongoDB), RAG vectorial (PGVector) y contexto de largo plazo de Airtable inyectado en el system pr"
+    },
+    {
+      "id": "5e366b0b-abcb-4149-8b51-cab6a6da36fe",
+      "name": "Resumir y Persistir",
+      "nodeIds": [
+        "ea6e9016-2b81-45a0-af13-2aac1befb2a9",
+        "5add9e4f-e2cf-49d3-b150-72a0a30f17ac",
+        "1431bf84-9b3e-4710-a935-1020916b986b",
+        "d760e820-9772-423b-8fc7-e20c51fd6d85",
+        "dc3ba436-035c-4d3e-89be-28f3c6548618"
+      ],
+      "description": "Si la sesión supera 5 mensajes, GPT-4o-mini genera un resumen JSON estructurado y lo graba en Airtable reseteando el contador. Caso contrario, so"
+    },
+    {
+      "id": "947762f2-f3a6-4886-9afd-76c5cf242448",
+      "name": "Filtrar y redactar respuesta",
+      "nodeIds": [
+        "b7c6b56c-f2a1-4b32-84fa-7b0a2a17622d",
+        "1af3cdf6-8496-4075-92ca-376a1150c1bb",
+        "f52d63f6-f81c-4a3f-9384-c90a2370c577",
+        "7469a112-1c2e-4a22-9a18-4647c9e6f4cd",
+        "198e094a-612e-4ce6-a4bd-d12d12e5d7f0",
+        "85850f88-2e70-4d4c-b8dd-23d1219d725d",
+        "6adae871-7412-44d7-b69c-ca81de7f9327"
+      ],
+      "description": "Descarta auto-respuestas y casillas no-reply, la IA clasifica y redacta, y el payload queda reducido a From, Subject y BodyText validados"
+    },
+    {
+      "id": "64aa3acb-a472-458a-8ad1-4ef80684dd68",
+      "name": "Registrar caso y avisar",
+      "nodeIds": [
+        "1d1f8eb2-b62c-4f5c-a374-7e800e2a7671",
+        "a06a7894-61c5-423d-8738-63af32c77b47",
+        "32821c59-0db8-46d8-9dcd-da9e5092634e",
+        "dff8be9b-d6e3-4773-8db0-eba611d75079",
+        "be186f35-5587-42ec-a687-55a05a25d18b",
+        "c0c84e0a-ad7d-4375-80a4-e386536e8a73",
+        "bc698ea6-d51f-4df4-a22b-61f89c5a22b1",
+        "8bc24760-2225-426c-ad10-db155b3957ad"
+      ],
+      "description": "Busca al cliente en el CRM antes de crearlo, guarda la respuesta como borrador para revisión humana y avisa al equipo con datos mínimos"
+    }
+  ],
+  "id": "LaBsbF4LFS1u8QpN",
+  "tags": []
+}
